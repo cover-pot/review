@@ -6,13 +6,15 @@ import (
 	"fmt"
 	es "github.com/olivere/elastic/v7"
 	"log"
+	"net/url"
 	"os"
 )
 
-type Goods struct {
-	Name   string   `json:"name"`
-	Price  float64  `json:"price"`
-	Images []string `json:"images"`
+type User struct {
+	Name  string   `json:"name"`
+	Sex   string   `json:"sex"`
+	Age   int      `json:"age"`
+	Hobby []string `json:"hobby"`
 }
 
 func main() {
@@ -21,12 +23,14 @@ func main() {
 
 	ctx := context.Background()
 	logger := log.New(os.Stdout, "es_review", log.LstdFlags)
+	reqUrl := url.URL{
+		Scheme: "http",
+		Host:   fmt.Sprintf("%s:%s", esIP, esPort),
+	}
 
-	host := fmt.Sprintf("http://%s:%s", esIP, esPort)
-	fmt.Println(host)
 	// 初始化链接
 	client, err := es.NewClient(
-		es.SetURL(host),
+		es.SetURL(reqUrl.String()),
 		es.SetSniff(false),
 		es.SetTraceLog(logger),
 	)
@@ -36,7 +40,7 @@ func main() {
 
 	q := es.NewMatchQuery("name", "huawei")
 
-	// to print
+	// for print
 	src, err := q.Source()
 	if err != nil {
 		panic(err)
@@ -45,7 +49,7 @@ func main() {
 	fmt.Println(string(data))
 
 	// 数据搜索
-	result, err := client.Search().Index("goods").Query(q).Do(ctx)
+	result, err := client.Search().Index("user").Query(q).Do(ctx)
 	if err != nil {
 		panic(err)
 	}
@@ -54,13 +58,13 @@ func main() {
 
 	for _, value := range result.Hits.Hits {
 
-		var goods Goods
-		err := json.Unmarshal(value.Source, &goods)
+		var user User
+		err := json.Unmarshal(value.Source, &user)
 		if err != nil {
 			log.Fatal("marshal error")
 			continue
 		}
-		fmt.Println(goods)
+		fmt.Println(user)
 
 	}
 }
